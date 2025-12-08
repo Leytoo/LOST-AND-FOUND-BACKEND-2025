@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",                 // Latest JS features
+    "module": "commonjs",                 // Use ES module syntax
+    "moduleResolution": "node",         // Resolve modules like Node.js
+    "rootDir": "src",                   // Source files location
+    "outDir": "dist",                   // Compiled JS output
+    "strict": true,                      // Enable all strict type checks
+    "esModuleInterop": true,             // Allow default imports from CJS modules
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"]
+}
