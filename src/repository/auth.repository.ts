@@ -1,16 +1,16 @@
 import { prisma } from "../prisma/client";
 
 export const authRepository = {
-  findByEmail: (email: string) => {
+  findByStudentId: (studentId: string) => {
     return prisma.user.findUnique({
-      where: { email }
+      where: { studentId }
     });
   },
 
-  createUser: (email: string, name: string, hashedPassword: string) => {
+  createUser: (studentId: string, name: string, hashedPassword: string) => {
     return prisma.user.create({
       data: {
-        email,
+        studentId,
         name,
         password: hashedPassword,
       }

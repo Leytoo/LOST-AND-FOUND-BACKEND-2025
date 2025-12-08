@@ -20,7 +20,8 @@
     "cors": "^2.8.5",
     "express": "^4.22.1",
     "jsonwebtoken": "^9.0.2",
-    "pusher": "^5.2.0"
+    "pusher": "^5.2.0",
+    "pusher-js": "^8.4.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

@@ -1,23 +1,27 @@
 import bcrypt from "bcryptjs";
 import { authRepository } from "../repository/auth.repository";
 import { generateToken } from "../utils/generateToken";
+import { validateSignupInput, validateLoginInput } from "../utils/validation";
+import { sanitizeUser } from "../utils/sanitizeUser";
 
 export const authService = {
-  async signup(name: string, email: string, password: string) {
-    const existing = await authRepository.findByEmail(email);
-    if (existing) throw new Error("Email already taken");
+  async signup(name: string, studentId: string, password: string) {
+    validateSignupInput(name, studentId, password);
+    
+    const existing = await authRepository.findByStudentId(studentId);
+    if (existing) throw new Error("Student already exists");
 
     const hash = await bcrypt.hash(password, 10);
 
-    const user = await authRepository.createUser(email, name, hash);
+    const user = await authRepository.createUser(studentId, name, hash);
 
-    const token = generateToken(user.id);
-
-    return { user, token };
+    return { user: sanitizeUser(user) };
   },
 
-  async login(email: string, password: string) {
-    const user = await authRepository.findByEmail(email);
+  async login(studentId: string, password: string) {
+    validateLoginInput(studentId, password);
+    
+    const user = await authRepository.findByStudentId(studentId);
     if (!user) throw new Error("Invalid credentials");
 
     const match = await bcrypt.compare(password, user.password);
@@ -25,6 +29,6 @@ export const authService = {
 
     const token = generateToken(user.id);
 
-    return { user, token };
+    return { user: sanitizeUser(user), token };
   }
 };
