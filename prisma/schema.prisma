@@ -14,6 +14,7 @@ model User {
   password  String
   isAdmin   Boolean  @default(false)
   createdAt DateTime @default(now())
+  active    Boolean  @default(true) // ← Add this line
 
   // Relations
   lostItems   LostItem[]

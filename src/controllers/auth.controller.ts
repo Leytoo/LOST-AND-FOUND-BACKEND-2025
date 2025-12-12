@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { authService } from "../service/auth.service";
+import { pusher } from "../config/pusher.config";
 
 export const authController = {
   signup: async (req: Request, res: Response) => {
@@ -29,6 +30,12 @@ export const authController = {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
+    // Add this block here:
+    await pusher.trigger("users", "user-status-changed", {
+      userId: result.user.id,
+      active: true,
+    });
+
     return res.json({
       message: "Login successful",
       user: result.user,
@@ -37,13 +44,24 @@ export const authController = {
       type: result.type
     });
   } catch (error: any) {
-    // Return 403 for role mismatch errors
-    const isForbidden = error.message.includes("admin portal") || error.message.includes("Admin accounts");
-    const status = isForbidden ? 403 : (error.message.includes("required") || error.message.includes("format") ? 422 : 401);
-    return res.status(status).json({ error: error.message });
+    // ...existing error handling...
+  }
+},
+logout: async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+    await authService.setInactive(userId);
+
+    res.clearCookie("token");
+    return res.json({ message: "Logout successful" });
+  } catch (error: any) {
+    return res.status(500).json({ error: error.message });
   }
 },
 
+  
   changePassword: async (req: Request, res: Response) => {
     try {
       const { studentId, oldPassword, newPassword } = req.body;
@@ -62,5 +80,29 @@ export const authController = {
     } catch (error: any) {
       return res.status(400).json({ error: error.message });
     }
+  },
+
+  refresh: async (req: Request, res: Response) => {
+    try {
+      const { token } = req.body;
+      if (!token) return res.status(401).json({ error: "Unauthorized" });
+      const result = await authService.refreshToken(token);
+
+      res.cookie("token", result.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
+      return res.json({
+        message: "Token refreshed",
+        token: result.token
+      });
+    } catch (error: any) {
+      return res.status(401).json({ error: error.message });
+    }
   }
 };
+
+

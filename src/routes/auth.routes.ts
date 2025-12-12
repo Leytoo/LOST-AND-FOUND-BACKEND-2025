@@ -4,8 +4,10 @@ import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = express.Router();
 
+
 router.post("/signup", authController.signup);
 router.post("/login", authController.login);
+router.post("/logout", authController.logout);
 router.post("/change-password", authController.changePassword);
 router.post("/change-studentid", authController.changeStudentId);
 

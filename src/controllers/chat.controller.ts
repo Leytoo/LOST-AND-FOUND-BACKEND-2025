@@ -209,4 +209,6 @@ deleteConversation: async (req: AuthRequest, res: Response) => {
     }
     return res.status(400).json({ error: err.message });
   }
-},  };
+},
+  
+};

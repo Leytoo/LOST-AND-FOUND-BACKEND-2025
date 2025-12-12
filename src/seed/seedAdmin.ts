@@ -40,7 +40,3 @@ async function main() {
 }
 
 main();
-
-// "prisma": {
-//   "seed": "ts-node ./src/seed/seedAdmin.ts"
-// }
