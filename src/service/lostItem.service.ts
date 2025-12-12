@@ -1,5 +1,7 @@
 import { lostItemRepository } from "../repository/lostItem.repository";
 
+type LostItemUpdates = Partial<{ title: string; description: string; status: string; isFound: boolean }>;
+
 export const lostItemService = {
   async createLostItem(
     title: string,
@@ -33,9 +35,25 @@ export const lostItemService = {
     return item;
   },
 
-  async updateLostItem(id: string, updates: Partial<{ title: string; description: string; status: string }>) {
+  async updateLostItem(id: string, updates: LostItemUpdates) {
     return await lostItemRepository.update(id, updates);
   },
+
+  async markLostItemAsFound(id: string) {
+  const item = await lostItemRepository.findById(id);
+  if (!item) {
+    throw new Error("Lost item not found");
+  }
+
+  if (item.isFound) {
+    return item;
+  }
+
+  return await lostItemRepository.update(id, { 
+    isFound: true,      // ← ADD THIS
+    status: "found" 
+  });
+},
 
   async deleteLostItem(id: string) {
     return await lostItemRepository.delete(id);

@@ -8,11 +8,29 @@ export const messageRepository = {
     });
   },
 
-  findByConversationId: (conversationId: string) => {
-    return prisma.message.findMany({
+  findByConversationId: async (conversationId: string) => {
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { userId: true },
+    });
+
+    if (!conversation) return [];
+
+    const messages = await prisma.message.findMany({
       where: { conversationId },
       include: { sender: { select: { id: true, name: true } } },
       orderBy: { createdAt: "asc" },
+    });
+
+    return messages.map((msg) => ({
+      ...msg,
+      senderType: msg.senderId === conversation.userId ? "user" : "admin",
+    }));
+  },
+
+  deleteByConversationId: (conversationId: string) => {
+    return prisma.message.deleteMany({
+      where: { conversationId },
     });
   },
 };

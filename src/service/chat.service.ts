@@ -10,11 +10,11 @@ export const chatService = {
     return conversation;
   },
 
-  async getConversation(userId: string, foundItemId: string) {
-    const conversation = await conversationRepository.findByUserAndItem(userId, foundItemId);
-    if (!conversation) throw new Error("Conversation not found");
-    return conversation;
-  },
+  async getConversation(conversationId: string) { // ← Changed parameter
+  const conversation = await conversationRepository.findById(conversationId); // ← Use findById
+  if (!conversation) throw new Error("Conversation not found");
+  return conversation;
+},
 
   async getUserConversations(userId: string) {
     return await conversationRepository.findByUserId(userId);
@@ -46,4 +46,15 @@ export const chatService = {
   async closeConversation(conversationId: string) {
     return await conversationRepository.updateStatus(conversationId, "resolved");
   },
+
+async deleteConversation(conversationId: string) {
+  const conversation = await conversationRepository.findById(conversationId);
+  if (!conversation) {
+    const error: any = new Error("Conversation not found");
+    error.status = 404;
+    throw error;
+  }
+  await messageRepository.deleteByConversationId(conversationId);
+  await conversationRepository.delete(conversationId);
+}
 };

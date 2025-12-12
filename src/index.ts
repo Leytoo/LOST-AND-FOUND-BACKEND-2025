@@ -5,9 +5,10 @@ import authRoutes from "./routes/auth.routes";
 import lostItemRoutes from "./routes/lostItem.routes";
 import foundItemRoutes from "./routes/foundItem.routes";
 import chatRoutes from "./routes/chat.routes";
+import path from "path";
+
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
@@ -16,6 +17,7 @@ app.use("/auth", authRoutes);
 app.use("/lost-items", lostItemRoutes);
 app.use("/found-items", foundItemRoutes);
 app.use("/chat", chatRoutes);
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 const PORT = 5000;
 

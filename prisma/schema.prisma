@@ -29,7 +29,8 @@ model LostItem {
   category    String
   location    String
   image       String?
-  status      String   @default("active") // active, found, claimed
+  status      String   @default("active")
+  isFound     Boolean  @default(false) // ← NEW LINE
   postedBy    String
   user        User     @relation(fields: [postedBy], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
@@ -37,6 +38,7 @@ model LostItem {
 
   @@index([postedBy])
   @@index([status])
+  @@index([isFound]) // ← NEW INDEX
 }
 
 model FoundItem {
@@ -46,6 +48,9 @@ model FoundItem {
   category    String
   location    String
   image       String?
+  status      String   @default("active")
+  isFound     Boolean  @default(false)
+  claimedAt   DateTime?
   postedBy    String
   user        User     @relation("foundItemPoster", fields: [postedBy], references: [id], onDelete: Cascade)
   conversations Conversation[]
@@ -53,6 +58,8 @@ model FoundItem {
   updatedAt   DateTime @updatedAt
 
   @@index([postedBy])
+  @@index([status])
+  @@index([isFound])
 }
 
 model Conversation {

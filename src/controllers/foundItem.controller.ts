@@ -5,12 +5,30 @@ import { AuthRequest } from "../middleware/auth.middleware";
 export const foundItemController = {
   createFoundItem: async (req: AuthRequest, res: Response) => {
     try {
-      const { title, description, category, location, image } = req.body;
+      const { title, description, category, location } = req.body;
       const userId = req.user?.id;
+      const image = req.file ? `/uploads/${req.file.filename}` : undefined;
+
+      // Trim whitespace/tabs from fields
+      const cleanTitle = title?.trim();
+      const cleanDescription = description?.trim();
+      const cleanCategory = category?.trim();
+      const cleanLocation = location?.trim();
+
+      console.log("Request body:", req.body);
+      console.log("Request file:", req.file);
+      console.log("User ID:", userId);
 
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-      const item = await foundItemService.createFoundItem(title, description, category, location, userId, image);
+      const item = await foundItemService.createFoundItem(
+        cleanTitle,
+        cleanDescription,
+        cleanCategory,
+        cleanLocation,
+        userId,
+        image
+      );
 
       return res.status(201).json({
         message: "Found item posted successfully",
@@ -74,7 +92,26 @@ export const foundItemController = {
       return res.status(400).json({ error: error.message });
     }
   },
+  markAsClaimed: async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.user?.id;
 
+    if (!adminId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const item = await foundItemService.markAsClaimed(id, adminId);
+
+    return res.json({
+      message: "Found item marked as claimed",
+      item,
+    });
+  } catch (error: any) {
+    const status = error.status ?? (error.message === "Found item not found" ? 404 : 400);
+    return res.status(status).json({ error: error.message });
+  }
+},
   deleteFoundItem: async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;

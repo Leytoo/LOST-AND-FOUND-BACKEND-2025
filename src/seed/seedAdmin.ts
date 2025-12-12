@@ -5,7 +5,7 @@ async function main() {
   try {
     // Check if admin already exists
     const existingAdmin = await prisma.user.findUnique({
-      where: { studentId: "ADMIN2025" },
+      where: { studentId: "13572468" },
     });
 
     if (existingAdmin) {
@@ -19,7 +19,7 @@ async function main() {
     // Create admin user
     const admin = await prisma.user.create({
       data: {
-        studentId: "ADMIN2025",
+        studentId: "13572468",
         name: "SAO Admin",
         password: hashedPassword,
         isAdmin: true,
@@ -40,3 +40,7 @@ async function main() {
 }
 
 main();
+
+// "prisma": {
+//   "seed": "ts-node ./src/seed/seedAdmin.ts"
+// }

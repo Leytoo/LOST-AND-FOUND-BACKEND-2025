@@ -5,8 +5,12 @@ export const conversationRepository = {
     return prisma.conversation.create({
       data,
       include: {
-        messages: { orderBy: { createdAt: "asc" } },
+        messages: { 
+          include: { sender: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "asc" } 
+        },
         user: { select: { id: true, name: true, studentId: true } },
+        foundItem: { select: { id: true, title: true, location: true, user: { select: { id: true, name: true } } } },
       },
     });
   },
@@ -15,8 +19,12 @@ export const conversationRepository = {
     return prisma.conversation.findFirst({
       where: { userId, foundItemId },
       include: {
-        messages: { orderBy: { createdAt: "asc" } },
+        messages: { 
+          include: { sender: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "asc" } 
+        },
         user: { select: { id: true, name: true, studentId: true } },
+        foundItem: { select: { id: true, title: true, location: true, user: { select: { id: true, name: true } } } },
       },
     });
   },
@@ -25,8 +33,13 @@ export const conversationRepository = {
     return prisma.conversation.findMany({
       where: { userId },
       include: {
-        messages: { orderBy: { createdAt: "desc" }, take: 1 },
+        messages: { 
+          include: { sender: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "desc" }, 
+          take: 1 
+        },
         user: { select: { id: true, name: true, studentId: true } },
+        foundItem: { select: { id: true, title: true, location: true, user: { select: { id: true, name: true } } } },
       },
       orderBy: { updatedAt: "desc" },
     });
@@ -35,8 +48,12 @@ export const conversationRepository = {
   findAll: () => {
     return prisma.conversation.findMany({
       include: {
-        messages: { orderBy: { createdAt: "desc" }, take: 1 },
+        messages: {
+          include: { sender: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "asc" },
+        },
         user: { select: { id: true, name: true, studentId: true } },
+        foundItem: { select: { id: true, title: true, location: true, user: { select: { id: true, name: true } } } },
       },
       orderBy: { updatedAt: "desc" },
     });
@@ -46,8 +63,12 @@ export const conversationRepository = {
     return prisma.conversation.findUnique({
       where: { id },
       include: {
-        messages: { orderBy: { createdAt: "asc" } },
+        messages: { 
+          include: { sender: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "asc" } 
+        },
         user: { select: { id: true, name: true, studentId: true } },
+        foundItem: { select: { id: true, title: true, location: true, user: { select: { id: true, name: true } } } },
       },
     });
   },
@@ -57,9 +78,19 @@ export const conversationRepository = {
       where: { id },
       data: { status },
       include: {
-        messages: { orderBy: { createdAt: "asc" } },
+        messages: { 
+          include: { sender: { select: { id: true, name: true } } },
+          orderBy: { createdAt: "asc" } 
+        },
         user: { select: { id: true, name: true, studentId: true } },
+        foundItem: { select: { id: true, title: true, location: true, user: { select: { id: true, name: true } } } },
       },
+    });
+  },
+
+  delete: (id: string) => {
+    return prisma.conversation.delete({
+      where: { id },
     });
   },
 };

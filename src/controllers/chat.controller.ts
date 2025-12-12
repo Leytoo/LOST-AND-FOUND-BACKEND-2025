@@ -1,150 +1,212 @@
-import { Request, Response } from "express";
-import { chatService } from "../service/chat.service";
-import { AuthRequest } from "../middleware/auth.middleware";
-import { pusher } from "../config/pusher.config";
+  import { Request, Response } from "express";
+  import { chatService } from "../service/chat.service";
+  import { AuthRequest } from "../middleware/auth.middleware";
+  import { pusher } from "../config/pusher.config";
+  import { prisma } from "../prisma/client";
 
-export const chatController = {
-  startConversation: async (req: AuthRequest, res: Response) => {
-    try {
-      const { foundItemId, subject } = req.body;
-      const userId = req.user?.id;
+  export const chatController = {
+    startConversation: async (req: AuthRequest, res: Response) => {
+      try {
+        const { foundItemId, subject } = req.body;
+        const userId = req.user?.id;
 
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
-      if (!foundItemId || !subject) {
-        return res.status(400).json({ error: "Found item ID and subject are required" });
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        if (!foundItemId || !subject) {
+          return res.status(400).json({ error: "Found item ID and subject are required" });
+        }
+
+        const conversation = await chatService.startConversation(userId, foundItemId, subject);
+
+        return res.status(201).json({
+          message: "Conversation started",
+          conversation,
+        });
+      } catch (err: any) {
+        return res.status(400).json({ error: err.message });
       }
+    },
 
-      const conversation = await chatService.startConversation(userId, foundItemId, subject);
+    getConversation: async (req: AuthRequest, res: Response) => {
+      try {
+        const { conversationId } = req.params;
+        const userId = req.user?.id;
 
-      return res.status(201).json({
-        message: "Conversation started",
-        conversation,
-      });
-    } catch (error: any) {
-      return res.status(400).json({ error: error.message });
-    }
-  },
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
 
-  getConversation: async (req: AuthRequest, res: Response) => {
-    try {
-      const { foundItemId } = req.params;
-      const userId = req.user?.id;
+        const conversation = await chatService.getConversation(conversationId);
 
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+        return res.json({
+          message: "Conversation retrieved",
+          conversation,
+        });
+      } catch (err: any) {
+        return res.status(404).json({ error: err.message });
+      }
+    },
+    
+    getUserConversations: async (req: AuthRequest, res: Response) => {
+      try {
+        const userId = req.user?.id;
 
-      const conversation = await chatService.getConversation(userId, foundItemId);
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
 
-      return res.json({
-        message: "Conversation retrieved",
-        conversation,
-      });
-    } catch (error: any) {
-      return res.status(404).json({ error: error.message });
-    }
-  },
+        const conversations = await chatService.getUserConversations(userId);
 
-  getUserConversations: async (req: AuthRequest, res: Response) => {
-    try {
-      const userId = req.user?.id;
+        return res.json({
+          message: "User conversations retrieved",
+          conversations,
+        });
+      } catch (err: any) {
+        return res.status(400).json({ error: err.message });
+      }
+    },
 
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    getAdminConversations: async (req: AuthRequest, res: Response) => {
+      try {
+        const userId = req.user?.id;
 
-      const conversations = await chatService.getUserConversations(userId);
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
 
-      return res.json({
-        message: "User conversations retrieved",
-        conversations,
-      });
-    } catch (error: any) {
-      return res.status(400).json({ error: error.message });
-    }
-  },
+        const conversations = await chatService.getAdminConversations();
 
-  getAdminConversations: async (req: AuthRequest, res: Response) => {
-    try {
-      const userId = req.user?.id;
+        return res.json({
+          message: "All conversations retrieved",
+          conversations,
+        });
+      } catch (err: any) {
+        return res.status(400).json({ error: err.message });
+      }
+    },
 
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
-      // TODO: Add admin role check here
+    sendMessage: async (req: AuthRequest, res: Response) => {
+      try {
+        const { conversationId, content } = req.body;
+        const userId = req.user?.id;
 
-      const conversations = await chatService.getAdminConversations();
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
 
-      return res.json({
-        message: "All conversations retrieved",
-        conversations,
-      });
-    } catch (error: any) {
-      return res.status(400).json({ error: error.message });
-    }
-  },
+        if (!conversationId || !content) {
+          return res.status(400).json({ error: "Conversation ID and content are required" });
+        }
 
-  sendMessage: async (req: AuthRequest, res: Response) => {
-    try {
-      const { conversationId, content } = req.body;
-      const userId = req.user?.id;
+        const conversation = await chatService.getConversation(conversationId);
 
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+        const message = await prisma.message.create({
+          data: {
+            conversationId,
+            senderId: userId,
+            content,
+          },
+          include: {
+            sender: {
+              select: {
+                id: true,
+                name: true,
+                isAdmin: true,
+              },
+            },
+          },
+        });
 
-      // Save message to database
-      const message = await chatService.sendMessage(conversationId, userId, content);
+        const senderType = message.senderId === conversation.userId ? "user" : "admin";
 
-      // Trigger Pusher event for real-time update
-      await pusher.trigger(
-        `conversation-${conversationId}`,
-        "message-sent",
-        {
+        await pusher.trigger(`conversation-${conversationId}`, "message-sent", {
           id: message.id,
           conversationId: message.conversationId,
           senderId: message.senderId,
           content: message.content,
           createdAt: message.createdAt,
+          senderType,
           sender: {
             id: message.sender.id,
             name: message.sender.name,
+            isAdmin: senderType === "admin",
           },
+        });
+
+        return res.status(201).json({
+          message: "Message sent",
+          data: {
+            id: message.id,
+            conversationId: message.conversationId,
+            senderId: message.senderId,
+            content: message.content,
+            createdAt: message.createdAt,
+            senderType,
+            sender: {
+              id: message.sender.id,
+              name: message.sender.name,
+              isAdmin: senderType === "admin",
+            },
+          },
+        });
+      } catch (err: any) {
+        return res.status(400).json({ error: err.message });
+      }
+    },
+
+    getMessages: async (req: Request, res: Response) => {
+      try {
+        const { conversationId } = req.params;
+
+        const messages = await chatService.getMessages(conversationId);
+
+        return res.json({
+          message: "Messages retrieved",
+          messages,
+        });
+      } catch (err: any) {
+        return res.status(400).json({ error: err.message });
+      }
+    },
+    
+    closeConversation: async (req: AuthRequest, res: Response) => {
+      try {
+        const { conversationId } = req.body;
+        const userId = req.user?.id;
+
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
         }
-      );
 
-      res.status(201).json({
-        message: "Message sent",
-        data: message,
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+        const conversation = await chatService.closeConversation(conversationId);
+
+        return res.json({
+          message: "Conversation closed",
+          conversation,
+        });
+      } catch (err: any) {
+        return res.status(400).json({ error: err.message });
+      }
+    },
+
+deleteConversation: async (req: AuthRequest, res: Response) => {
+  try {
+    const { conversationId } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
-  },
 
-  getMessages: async (req: Request, res: Response) => {
-    try {
-      const { conversationId } = req.params;
+    await chatService.deleteConversation(conversationId);
 
-      const messages = await chatService.getMessages(conversationId);
-
-      return res.json({
-        message: "Messages retrieved",
-        messages,
-      });
-    } catch (error: any) {
-      return res.status(400).json({ error: error.message });
+    return res.status(204).send();
+  } catch (err: any) {
+    if (err.status === 404) {
+      return res.status(404).json({ error: err.message });
     }
-  },
-
-  closeConversation: async (req: AuthRequest, res: Response) => {
-    try {
-      const { conversationId } = req.body;
-      const userId = req.user?.id;
-
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
-      // TODO: Add admin role check here
-
-      const conversation = await chatService.closeConversation(conversationId);
-
-      return res.json({
-        message: "Conversation closed",
-        conversation,
-      });
-    } catch (error: any) {
-      return res.status(400).json({ error: error.message });
-    }
-  },
-};
+    return res.status(400).json({ error: err.message });
+  }
+},  };

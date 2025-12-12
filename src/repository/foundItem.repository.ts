@@ -1,5 +1,22 @@
 import { prisma } from "../prisma/client";
 
+const userSelect = { id: true, name: true, studentId: true } as const;
+const foundItemSelect = {
+  id: true,
+  title: true,
+  description: true,
+  category: true,
+  location: true,
+  image: true,
+  status: true,
+  isFound: true,
+  claimedAt: true,
+  postedBy: true,
+  createdAt: true,
+  updatedAt: true,
+  user: { select: userSelect },
+} as const;
+
 export const foundItemRepository = {
   create: (data: { title: string; description: string; category: string; location: string; image?: string; postedBy: string }) => {
     return prisma.foundItem.create({ data });
@@ -10,7 +27,7 @@ export const foundItemRepository = {
       where: {
         ...(filters?.category && { category: filters.category }),
       },
-      include: { user: { select: { id: true, name: true, studentId: true } } },
+      select: foundItemSelect,
       orderBy: { createdAt: "desc" },
     });
   },
@@ -18,15 +35,18 @@ export const foundItemRepository = {
   findById: (id: string) => {
     return prisma.foundItem.findUnique({
       where: { id },
-      include: { user: { select: { id: true, name: true, studentId: true } } },
+      select: foundItemSelect,
     });
   },
 
-  update: (id: string, data: Partial<{ title: string; description: string }>) => {
+  update: (
+    id: string,
+    data: Partial<{ title: string; description: string; category: string; location: string; image?: string; isFound: boolean; status: string; claimedAt: Date | null }>
+  ) => {
     return prisma.foundItem.update({
       where: { id },
       data,
-      include: { user: { select: { id: true, name: true, studentId: true } } },
+      select: foundItemSelect,
     });
   },
 

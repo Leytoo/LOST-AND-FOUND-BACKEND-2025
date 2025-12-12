@@ -18,6 +18,8 @@ export const adminMiddleware = async (req: AuthRequest, res: Response, next: Nex
       return res.status(403).json({ error: "Access denied. Admin privileges required." });
     }
 
+    req.user = { id: userId, isAdmin: true };
+
     next();
   } catch (error: any) {
     return res.status(500).json({ error: "Internal server error" });

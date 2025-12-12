@@ -1,7 +1,7 @@
 export const validateStudentId = (studentId: string): boolean => {
-  // Accept alphanumeric student ID format (e.g., "2025001", "STU2025", etc.)
-  const studentIdRegex = /^[a-zA-Z0-9]+$/;
-  return studentIdRegex.test(studentId) && studentId.length >= 3;
+  // Accept only 8-digit integer student ID (e.g., "20250001")
+  const studentIdRegex = /^\d{8}$/;
+  return studentIdRegex.test(studentId);
 };
 
 export const validatePassword = (password: string): { valid: boolean; message?: string } => {
@@ -25,7 +25,7 @@ export const validateSignupInput = (name: string, studentId: string, password: s
     throw new Error("Name, student ID, and password are required");
   }
   if (!validateStudentId(studentId)) {
-    throw new Error("Invalid student ID format");
+    throw new Error("Student ID must be an 8-digit number");
   }
   const passwordValidation = validatePassword(password);
   if (!passwordValidation.valid) {
@@ -38,6 +38,6 @@ export const validateLoginInput = (studentId: string, password: string) => {
     throw new Error("Student ID and password are required");
   }
   if (!validateStudentId(studentId)) {
-    throw new Error("Invalid student ID format");
+    throw new Error("Student ID must be an 8-digit number");
   }
 };

@@ -5,8 +5,9 @@ import { AuthRequest } from "../middleware/auth.middleware";
 export const lostItemController = {
   createLostItem: async (req: AuthRequest, res: Response) => {
     try {
-      const { title, description, category, location, image } = req.body;
+      const { title, description, category, location } = req.body;
       const userId = req.user?.id;
+      const image = req.file ? `/uploads/${req.file.filename}` : undefined; // Pass `image` to your service/database
 
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
@@ -76,15 +77,53 @@ export const lostItemController = {
     }
   },
 
+  markAsFound: async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updatedItem = await lostItemService.markLostItemAsFound(id);
+
+    // 📡 Trigger Pusher event to notify users in real-time
+    try {
+      const Pusher = require("pusher");
+      const pusher = new Pusher({
+        appId: process.env.PUSHER_APP_ID,
+        key: process.env.PUSHER_KEY,
+        secret: process.env.PUSHER_SECRET,
+        cluster: process.env.PUSHER_CLUSTER,
+      });
+
+      await pusher.trigger('lost-items-updates', 'item-marked-found', {
+        itemId: id,
+        isFound: true,
+        timestamp: new Date().toISOString()
+      });
+
+      console.log(`✅ Pusher event triggered for item ${id}`);
+    } catch (pusherError) {
+      console.warn(`⚠️ Failed to trigger Pusher event:`, pusherError);
+      // Don't fail the response if Pusher fails
+    }
+
+    return res.json({
+      message: "Lost item marked as found",
+      item: updatedItem,
+    });
+  } catch (error: any) {
+    const statusCode = error.message === "Lost item not found" ? 404 : 400;
+    return res.status(statusCode).json({ error: error.message });
+  }
+},
+
   deleteLostItem: async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
       const userId = req.user?.id;
+      const isAdmin = Boolean(req.user?.isAdmin);
 
       if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
       const item = await lostItemService.getLostItemById(id);
-      if (item.postedBy !== userId) {
+      if (!isAdmin && item.postedBy !== userId) {
         return res.status(403).json({ error: "You can only delete your own items" });
       }
 

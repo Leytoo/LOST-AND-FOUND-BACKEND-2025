@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
 export interface AuthRequest extends Request {
-  user?: { id: string };
+  user?: { id: string; isAdmin?: boolean };
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
